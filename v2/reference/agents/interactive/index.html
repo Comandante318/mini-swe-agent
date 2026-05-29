@@ -2987,7 +2987,7 @@
             <span class="k">return</span>
         <span class="n">prompt</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"[bold yellow]Execute </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span><span class="si">}</span><span class="s2"> action(s)?[/] [green][bold]Enter[/] to confirm[/], "</span>
-            <span class="s2">"[red]type [bold]comment[/] to reject[/], or [blue][bold]/h[/] to show available commands[/]</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="s2">"[red]type [bold]comment[/] to reject[/], or [blue][bold]/h[/bold] to show available commands[/]</span><span class="se">\n</span><span class="s2">"</span>
             <span class="s2">"[bold yellow]&gt;[/bold yellow] "</span>
         <span class="p">)</span>
         <span class="k">match</span> <span class="n">user_input</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prompt_and_handle_slash_commands</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
@@ -3006,7 +3006,12 @@
         <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">_multiline</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_multiline_prompt</span><span class="p">()</span>
-        <span class="n">user_input</span> <span class="o">=</span> <span class="n">prompt_session</span><span class="o">.</span><span class="n">prompt</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">user_input</span> <span class="o">=</span> <span class="n">prompt_session</span><span class="o">.</span><span class="n">prompt</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="c1"># If user interrupts the prompt, return empty input and let callers handle it.</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[bold yellow]Input interrupted.[/bold yellow]"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s2">""</span>
         <span class="k">if</span> <span class="n">user_input</span> <span class="o">==</span> <span class="s2">"/m"</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prompt_and_handle_slash_commands</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">_multiline</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">user_input</span> <span class="o">==</span> <span class="s2">"/h"</span><span class="p">:</span>
