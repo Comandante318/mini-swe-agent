@@ -705,9 +705,7 @@ def _make_mock_env_for_visual_test():
     mock_get_model = Mock(return_value=mock_model)
     mock_environment = Mock()
     mock_env = Mock(return_value=mock_environment)
-    mock_get_config = Mock(
-        return_value={"agent": {"system_template": "test", "mode": "yolo"}, "env": {}, "model": {}}
-    )
+    mock_get_config = Mock(return_value={"agent": {"system_template": "test", "mode": "yolo"}, "env": {}, "model": {}})
     mock_agent = Mock()
     mock_agent.run.return_value = {"exit_status": "Success", "submission": "Result"}
     return mock_model, mock_get_model, mock_environment, mock_env, mock_get_config, mock_agent
