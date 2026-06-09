@@ -2,12 +2,7 @@
 
 import pytest
 
-from minisweagent.config import (
-    _key_value_spec_to_nested_dict,
-    builtin_config_dir,
-    get_config_from_spec,
-    get_config_path,
-)
+from minisweagent.config import _key_value_spec_to_nested_dict, get_config_from_spec, get_config_path
 
 
 class TestKeyValueSpecToNestedDict:
@@ -102,10 +97,42 @@ class TestGetConfigFromSpec:
         assert result == {"key": "value", "number": 42}
 
 
-_ALL_BUILTIN_CONFIGS = list(builtin_config_dir.rglob("*.yaml"))
+class TestGetConfigPath:
+    """Tests for get_config_path function.
 
+    The docs/advanced/yaml_configuration.md change references the swebench_xml config
+    via ``--8<-- "src/minisweagent/config/extra/swebench_xml.yaml"`` — i.e. the file
+    lives in the ``extra/`` subdirectory.  get_config_path must resolve the short-name
+    ``"swebench_xml"`` (no directory, no extension) to that file.
+    """
 
-@pytest.mark.parametrize("yaml_file", _ALL_BUILTIN_CONFIGS, ids=[f.stem for f in _ALL_BUILTIN_CONFIGS])
-def test_all_builtin_configs_findable_by_name(yaml_file):
-    """All builtin YAML configs should be findable by their stem name."""
-    assert get_config_path(yaml_file.stem) == yaml_file
+    def test_swebench_xml_resolves_from_extra_subdir(self):
+        """swebench_xml config is found in the builtin extra/ directory."""
+        path = get_config_path("swebench_xml")
+        assert path.exists(), f"swebench_xml.yaml not found at {path}"
+        assert path.name == "swebench_xml.yaml"
+        assert "extra" in path.parts, f"Expected path to be under extra/, got {path}"
+
+    def test_swebench_xml_path_with_yaml_suffix(self):
+        """get_config_path appends .yaml automatically if not provided."""
+        path_no_suffix = get_config_path("swebench_xml")
+        path_with_suffix = get_config_path("swebench_xml.yaml")
+        assert path_no_suffix == path_with_suffix
+
+    def test_extra_configs_are_loadable(self):
+        """All extra/ configs referenced in docs can be loaded via their short names."""
+        for name in ("swebench_xml",):
+            path = get_config_path(name)
+            result = get_config_from_spec(path)
+            assert isinstance(result, dict), f"Config '{name}' did not load as a dict"
+
+    def test_nonexistent_config_raises_file_not_found(self):
+        """get_config_path raises FileNotFoundError for unknown config names."""
+        with pytest.raises(FileNotFoundError):
+            get_config_path("this_config_does_not_exist_ever")
+
+    def test_builtin_configs_are_reachable_by_short_name(self):
+        """Core builtin configs (mini, default) resolve without specifying a full path."""
+        for name in ("mini", "default"):
+            path = get_config_path(name)
+            assert path.exists(), f"Builtin config '{name}' not found at {path}"
