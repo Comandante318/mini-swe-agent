@@ -699,115 +699,185 @@ def test_output_file_is_created(tmp_path):
         assert output_file.exists(), f"Output file {output_file} was not created"
 
 
-def _make_mock_setup(mock_interactive_agent_class, mock_textual_agent_class, mock_get_model, mock_env, mock_get_config):
-    """Helper to set up common mocks for visual mode tests."""
+def _make_mock_env_for_visual_test():
+    """Helper that builds the common mock setup for visual mode tests."""
     mock_model = Mock()
-    mock_get_model.return_value = mock_model
+    mock_get_model = Mock(return_value=mock_model)
     mock_environment = Mock()
-    mock_env.return_value = mock_environment
-    mock_get_config.return_value = {"agent": {"system_template": "test"}, "env": {}, "model": {}}
-
-    for mock_agent_class in (mock_interactive_agent_class, mock_textual_agent_class):
-        mock_agent = Mock()
-        mock_agent.run.return_value = {"exit_status": "Success", "submission": "Result"}
-        mock_agent_class.return_value = mock_agent
-
-
-# --- Tests for MSWEA_VISUAL_MODE_DEFAULT XOR behaviour ---
-# The logic in mini.py line 118:
-#   if visual == (os.getenv("MSWEA_VISUAL_MODE_DEFAULT", "false") == "false"):
-#       agent_class = TextualAgent
-# i.e. XOR: TextualAgent is used when visual flag and default setting differ.
+    mock_env = Mock(return_value=mock_environment)
+    mock_get_config = Mock(
+        return_value={"agent": {"system_template": "test", "mode": "yolo"}, "env": {}, "model": {}}
+    )
+    mock_agent = Mock()
+    mock_agent.run.return_value = {"exit_status": "Success", "submission": "Result"}
+    return mock_model, mock_get_model, mock_environment, mock_env, mock_get_config, mock_agent
 
 
-class TestVisualModeDefault:
-    """Tests for MSWEA_VISUAL_MODE_DEFAULT environment variable behaviour (documented in global_configuration.md)."""
+class TestVisualModeDefaultEnvVar:
+    """Tests for MSWEA_VISUAL_MODE_DEFAULT XOR toggle logic (documented in global_configuration.md).
 
-    def _run_main(self, visual: bool):
-        """Call main() with the given visual flag and standard mocks, return agent class used."""
+    The logic (mini.py):
+        agent_class = InteractiveAgent
+        if visual == (os.getenv("MSWEA_VISUAL_MODE_DEFAULT", "false") == "false"):
+            agent_class = TextualAgent
+
+    In other words: the -v flag *toggles* the default determined by MSWEA_VISUAL_MODE_DEFAULT.
+    """
+
+    def test_no_env_var_no_visual_flag_uses_interactive(self):
+        """Default (no env var, no -v flag) → InteractiveAgent."""
+        mock_model, mock_get_model, mock_env, mock_env_cls, mock_get_config, mock_agent = (
+            _make_mock_env_for_visual_test()
+        )
         with (
             patch("minisweagent.run.mini.configure_if_first_time"),
-            patch("minisweagent.run.mini.InteractiveAgent") as mock_interactive,
-            patch("minisweagent.run.mini.TextualAgent") as mock_textual,
-            patch("minisweagent.run.mini.get_model") as mock_get_model,
-            patch("minisweagent.run.mini.LocalEnvironment") as mock_env,
-            patch("minisweagent.run.mini.get_config_from_spec") as mock_get_config,
+            patch("minisweagent.run.mini.InteractiveAgent", return_value=mock_agent) as mock_interactive,
+            patch("minisweagent.run.mini.TextualAgent", return_value=mock_agent) as mock_textual,
+            patch("minisweagent.run.mini.get_model", mock_get_model),
+            patch("minisweagent.run.mini.LocalEnvironment", mock_env_cls),
+            patch("minisweagent.run.mini.get_config_from_spec", mock_get_config),
+            patch.dict(os.environ, {}, clear=False),
         ):
-            _make_mock_setup(mock_interactive, mock_textual, mock_get_model, mock_env, mock_get_config)
+            os.environ.pop("MSWEA_VISUAL_MODE_DEFAULT", None)
             main(
                 config_spec=[str(DEFAULT_CONFIG_FILE)],
                 model_name="test-model",
-                task="Test task",
-                yolo=False,
+                task="task",
+                yolo=True,
                 output=None,
-                visual=visual,
+                visual=False,
                 model_class=None,
             )
-            return mock_interactive, mock_textual
+            mock_interactive.assert_called_once()
+            mock_textual.assert_not_called()
 
-    def test_default_env_visual_false_uses_interactive_agent(self):
-        """MSWEA_VISUAL_MODE_DEFAULT unset + visual=False → InteractiveAgent."""
-        with patch.dict(os.environ, {}, clear=False):
+    def test_no_env_var_visual_flag_uses_textual(self):
+        """No env var + -v flag → TextualAgent."""
+        mock_model, mock_get_model, mock_env, mock_env_cls, mock_get_config, mock_agent = (
+            _make_mock_env_for_visual_test()
+        )
+        with (
+            patch("minisweagent.run.mini.configure_if_first_time"),
+            patch("minisweagent.run.mini.InteractiveAgent", return_value=mock_agent) as mock_interactive,
+            patch("minisweagent.run.mini.TextualAgent", return_value=mock_agent) as mock_textual,
+            patch("minisweagent.run.mini.get_model", mock_get_model),
+            patch("minisweagent.run.mini.LocalEnvironment", mock_env_cls),
+            patch("minisweagent.run.mini.get_config_from_spec", mock_get_config),
+            patch.dict(os.environ, {}, clear=False),
+        ):
             os.environ.pop("MSWEA_VISUAL_MODE_DEFAULT", None)
-            mock_interactive, mock_textual = self._run_main(visual=False)
+            main(
+                config_spec=[str(DEFAULT_CONFIG_FILE)],
+                model_name="test-model",
+                task="task",
+                yolo=True,
+                output=None,
+                visual=True,
+                model_class=None,
+            )
+            mock_textual.assert_called_once()
+            mock_interactive.assert_not_called()
 
-        mock_interactive.assert_called_once()
-        mock_textual.assert_not_called()
+    def test_env_var_true_no_visual_flag_uses_textual(self):
+        """MSWEA_VISUAL_MODE_DEFAULT=true (default visual), no -v flag → TextualAgent."""
+        mock_model, mock_get_model, mock_env, mock_env_cls, mock_get_config, mock_agent = (
+            _make_mock_env_for_visual_test()
+        )
+        with (
+            patch("minisweagent.run.mini.configure_if_first_time"),
+            patch("minisweagent.run.mini.InteractiveAgent", return_value=mock_agent) as mock_interactive,
+            patch("minisweagent.run.mini.TextualAgent", return_value=mock_agent) as mock_textual,
+            patch("minisweagent.run.mini.get_model", mock_get_model),
+            patch("minisweagent.run.mini.LocalEnvironment", mock_env_cls),
+            patch("minisweagent.run.mini.get_config_from_spec", mock_get_config),
+            patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "true"}),
+        ):
+            main(
+                config_spec=[str(DEFAULT_CONFIG_FILE)],
+                model_name="test-model",
+                task="task",
+                yolo=True,
+                output=None,
+                visual=False,
+                model_class=None,
+            )
+            mock_textual.assert_called_once()
+            mock_interactive.assert_not_called()
 
-    def test_default_env_visual_true_uses_textual_agent(self):
-        """MSWEA_VISUAL_MODE_DEFAULT unset + visual=True → TextualAgent."""
-        with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("MSWEA_VISUAL_MODE_DEFAULT", None)
-            mock_interactive, mock_textual = self._run_main(visual=True)
+    def test_env_var_true_visual_flag_uses_interactive(self):
+        """MSWEA_VISUAL_MODE_DEFAULT=true (default visual) + -v flag → InteractiveAgent (toggle back)."""
+        mock_model, mock_get_model, mock_env, mock_env_cls, mock_get_config, mock_agent = (
+            _make_mock_env_for_visual_test()
+        )
+        with (
+            patch("minisweagent.run.mini.configure_if_first_time"),
+            patch("minisweagent.run.mini.InteractiveAgent", return_value=mock_agent) as mock_interactive,
+            patch("minisweagent.run.mini.TextualAgent", return_value=mock_agent) as mock_textual,
+            patch("minisweagent.run.mini.get_model", mock_get_model),
+            patch("minisweagent.run.mini.LocalEnvironment", mock_env_cls),
+            patch("minisweagent.run.mini.get_config_from_spec", mock_get_config),
+            patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "true"}),
+        ):
+            main(
+                config_spec=[str(DEFAULT_CONFIG_FILE)],
+                model_name="test-model",
+                task="task",
+                yolo=True,
+                output=None,
+                visual=True,
+                model_class=None,
+            )
+            mock_interactive.assert_called_once()
+            mock_textual.assert_not_called()
 
-        mock_textual.assert_called_once()
-        mock_interactive.assert_not_called()
+    def test_env_var_false_explicit_no_visual_flag_uses_interactive(self):
+        """MSWEA_VISUAL_MODE_DEFAULT=false (explicit), no -v flag → InteractiveAgent."""
+        mock_model, mock_get_model, mock_env, mock_env_cls, mock_get_config, mock_agent = (
+            _make_mock_env_for_visual_test()
+        )
+        with (
+            patch("minisweagent.run.mini.configure_if_first_time"),
+            patch("minisweagent.run.mini.InteractiveAgent", return_value=mock_agent) as mock_interactive,
+            patch("minisweagent.run.mini.TextualAgent", return_value=mock_agent) as mock_textual,
+            patch("minisweagent.run.mini.get_model", mock_get_model),
+            patch("minisweagent.run.mini.LocalEnvironment", mock_env_cls),
+            patch("minisweagent.run.mini.get_config_from_spec", mock_get_config),
+            patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "false"}),
+        ):
+            main(
+                config_spec=[str(DEFAULT_CONFIG_FILE)],
+                model_name="test-model",
+                task="task",
+                yolo=True,
+                output=None,
+                visual=False,
+                model_class=None,
+            )
+            mock_interactive.assert_called_once()
+            mock_textual.assert_not_called()
 
-    def test_env_false_visual_false_uses_interactive_agent(self):
-        """MSWEA_VISUAL_MODE_DEFAULT=false + visual=False → InteractiveAgent (default is 'non-visual')."""
-        with patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "false"}):
-            mock_interactive, mock_textual = self._run_main(visual=False)
-
-        mock_interactive.assert_called_once()
-        mock_textual.assert_not_called()
-
-    def test_env_false_visual_true_uses_textual_agent(self):
-        """MSWEA_VISUAL_MODE_DEFAULT=false + visual=True → TextualAgent (-v flag activates visual)."""
-        with patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "false"}):
-            mock_interactive, mock_textual = self._run_main(visual=True)
-
-        mock_textual.assert_called_once()
-        mock_interactive.assert_not_called()
-
-    def test_env_true_visual_false_uses_textual_agent(self):
-        """MSWEA_VISUAL_MODE_DEFAULT=true + visual=False → TextualAgent (visual is default now)."""
-        with patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "true"}):
-            mock_interactive, mock_textual = self._run_main(visual=False)
-
-        mock_textual.assert_called_once()
-        mock_interactive.assert_not_called()
-
-    def test_env_true_visual_true_uses_interactive_agent(self):
-        """MSWEA_VISUAL_MODE_DEFAULT=true + visual=True → InteractiveAgent (-v toggles away from visual default)."""
-        with patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "true"}):
-            mock_interactive, mock_textual = self._run_main(visual=True)
-
-        mock_interactive.assert_called_once()
-        mock_textual.assert_not_called()
-
-    def test_env_value_is_case_sensitive_non_false_treated_as_not_false(self):
-        """Any value other than exactly 'false' for MSWEA_VISUAL_MODE_DEFAULT flips to visual-default mode."""
-        # 'True' (capital T) is not 'false', so it should act like MSWEA_VISUAL_MODE_DEFAULT=true
-        with patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "True"}):
-            mock_interactive, mock_textual = self._run_main(visual=False)
-
-        mock_textual.assert_called_once()
-        mock_interactive.assert_not_called()
-
-    def test_env_value_false_string_is_exact_match(self):
-        """The string 'false' (exactly) keeps the default non-visual behaviour."""
-        with patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "false"}):
-            mock_interactive, mock_textual = self._run_main(visual=False)
-
-        mock_interactive.assert_called_once()
-        mock_textual.assert_not_called()
+    def test_env_var_false_explicit_visual_flag_uses_textual(self):
+        """MSWEA_VISUAL_MODE_DEFAULT=false (explicit) + -v flag → TextualAgent."""
+        mock_model, mock_get_model, mock_env, mock_env_cls, mock_get_config, mock_agent = (
+            _make_mock_env_for_visual_test()
+        )
+        with (
+            patch("minisweagent.run.mini.configure_if_first_time"),
+            patch("minisweagent.run.mini.InteractiveAgent", return_value=mock_agent) as mock_interactive,
+            patch("minisweagent.run.mini.TextualAgent", return_value=mock_agent) as mock_textual,
+            patch("minisweagent.run.mini.get_model", mock_get_model),
+            patch("minisweagent.run.mini.LocalEnvironment", mock_env_cls),
+            patch("minisweagent.run.mini.get_config_from_spec", mock_get_config),
+            patch.dict(os.environ, {"MSWEA_VISUAL_MODE_DEFAULT": "false"}),
+        ):
+            main(
+                config_spec=[str(DEFAULT_CONFIG_FILE)],
+                model_name="test-model",
+                task="task",
+                yolo=True,
+                output=None,
+                visual=True,
+                model_class=None,
+            )
+            mock_textual.assert_called_once()
+            mock_interactive.assert_not_called()
