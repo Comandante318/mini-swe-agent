@@ -5,9 +5,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 import yaml
+from minisweagent.run.extra.github_issue import DEFAULT_CONFIG, main
 
 from minisweagent.models.test_models import DeterministicModel
-from minisweagent.run.extra.github_issue import DEFAULT_CONFIG, main
 
 
 def normalize_outputs(s: str) -> str:

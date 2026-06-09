@@ -20,7 +20,7 @@ VERSION_RE = re.compile(r'^__version__\s*=\s*"([^"]+)"', re.MULTILINE)
 
 # Semantic version pattern: MAJOR.MINOR.PATCH with optional pre-release / build suffixes
 SEMVER_RE = re.compile(
-    r"^\d+\.\d+\.\d+"          # core MAJOR.MINOR.PATCH
+    r"^\d+\.\d+\.\d+"  # core MAJOR.MINOR.PATCH
     r"(?:[-.]?[a-zA-Z0-9]+)*$"  # optional pre-release labels (e.g. .dev1, -rc2)
 )
 
@@ -60,9 +60,7 @@ class TestVersionFormat:
         match = VERSION_RE.search(content)
         assert match is not None
         version = match.group(1)
-        assert SEMVER_RE.match(version), (
-            f"__version__ '{version}' does not look like a semantic version (e.g. '2.0.0')"
-        )
+        assert SEMVER_RE.match(version), f"__version__ '{version}' does not look like a semantic version (e.g. '2.0.0')"
 
     def test_version_importable(self):
         """__version__ must be importable from the package."""
@@ -125,9 +123,9 @@ class TestVersionFormat:
         ("10.20.30", True),
         ("1.0.0.dev1", True),
         ("2.0.0-rc1", True),
-        ("1.0", False),          # missing PATCH
-        ("1", False),            # only MAJOR
-        ("1.0.0.0.0", True),     # extra segments - lenient regex still matches
+        ("1.0", False),  # missing PATCH
+        ("1", False),  # only MAJOR
+        ("1.0.0.0.0", True),  # extra segments - lenient regex still matches
         ("", False),
     ],
 )
