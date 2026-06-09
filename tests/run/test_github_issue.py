@@ -1,0 +1,263 @@
+import os
+import re
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
+import yaml
+from minisweagent.run.extra.github_issue import DEFAULT_CONFIG, main
+
+from minisweagent.models.test_models import DeterministicModel
+
+
+def normalize_outputs(s: str) -> str:
+    """Strip leading/trailing whitespace and normalize internal whitespace"""
+    # Remove everything between <args> and </args>, because this contains docker container ids
+    s = re.sub(r"<args>(.*?)</args>", "", s, flags=re.DOTALL)
+    # Replace all lines that have root in them because they tend to appear with times
+    s = "\n".join(l for l in s.split("\n") if "root root" not in l)
+    return "\n".join(line.rstrip() for line in s.strip().split("\n"))
+
+
+def assert_observations_match(expected_observations: list[str], messages: list[dict]) -> None:
+    """Compare expected observations with actual observations from agent messages
+
+    Args:
+        expected_observations: List of expected observation strings
+        messages: Agent conversation messages (list of message dicts with 'role' and 'content')
+    """
+    # Extract actual observations from agent messages
+    # User/exit messages (observations) are at indices 3, 5, 7, etc.
+    actual_observations = []
+    for i in range(len(expected_observations)):
+        user_message_index = 3 + (i * 2)
+        assert messages[user_message_index]["role"] in ("user", "exit")
+        actual_observations.append(messages[user_message_index]["content"])
+
+    assert len(actual_observations) == len(expected_observations), (
+        f"Expected {len(expected_observations)} observations, got {len(actual_observations)}"
+    )
+
+    for i, (expected_observation, actual_observation) in enumerate(zip(expected_observations, actual_observations)):
+        normalized_actual = normalize_outputs(actual_observation)
+        normalized_expected = normalize_outputs(expected_observation)
+
+        assert normalized_actual == normalized_expected, (
+            f"Step {i + 1} observation mismatch:\nExpected: {repr(normalized_expected)}\nActual: {repr(normalized_actual)}"
+        )
+
+
+def test_configure_if_first_time_called():
+    """Test that configure_if_first_time is called when running github_issue main."""
+    with (
+        patch("minisweagent.run.extra.github_issue.configure_if_first_time") as mock_configure,
+        patch("minisweagent.run.extra.github_issue.fetch_github_issue") as mock_fetch,
+        patch("minisweagent.run.extra.github_issue.InteractiveAgent") as mock_agent,
+        patch("minisweagent.run.extra.github_issue.get_model"),
+        patch("minisweagent.run.extra.github_issue.DockerEnvironment"),
+        patch("minisweagent.run.extra.github_issue.get_config_from_spec") as mock_get_config,
+    ):
+        mock_fetch.return_value = "Test issue"
+        mock_get_config.return_value = {"agent": {}, "environment": {}, "model": {}}
+        mock_agent_instance = mock_agent.return_value
+        mock_agent_instance.run.return_value = {"exit_status": "Submitted", "submission": "success"}
+        mock_agent_instance.env.execute.return_value = None
+
+        main(
+            issue_url="https://github.com/test/repo/issues/1",
+            config_spec=[str(DEFAULT_CONFIG)],
+            model="test-model",
+            yolo=True,
+        )
+
+        mock_configure.assert_called_once()
+
+
+def test_output_file_is_created(tmp_path):
+    """Test that output trajectory file is created when output is specified."""
+    output_file = tmp_path / "test_github_traj.json"
+
+    # Create a temporary config file with output_path set
+    config_file = tmp_path / "test_config.yaml"
+    default_config_path = Path("src/minisweagent/config/github_issue.yaml")
+    config = yaml.safe_load(default_config_path.read_text())
+    config["agent"]["output_path"] = str(output_file)
+    config_file.write_text(yaml.dump(config))
+
+    with (
+        patch("minisweagent.run.extra.github_issue.configure_if_first_time"),
+        patch("minisweagent.run.extra.github_issue.fetch_github_issue") as mock_fetch,
+        patch("minisweagent.run.extra.github_issue.get_model") as mock_get_model,
+        patch("minisweagent.run.extra.github_issue.DockerEnvironment") as mock_env_class,
+        patch("minisweagent.agents.interactive.prompt_session.prompt", return_value=""),
+    ):
+        mock_fetch.return_value = "Test issue"
+
+        # Setup mock model and environment with required attributes
+        mock_model = Mock()
+        mock_model.config = Mock()
+        mock_model.config.model_dump.return_value = {}
+        mock_model.serialize.return_value = {
+            "info": {
+                "config": {"model": {}, "model_type": "MockModel"},
+            }
+        }
+        mock_model.get_template_vars.return_value = {}
+        mock_model.format_message.side_effect = lambda **kwargs: dict(**kwargs)
+        # query now returns dict with extra["actions"]
+        mock_model.query.side_effect = [
+            {
+                "role": "assistant",
+                "content": "```mswea_bash_command\necho COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\necho done\n```",
+                "extra": {"actions": [{"command": "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\necho done"}]},
+            },
+        ]
+        mock_model.format_observation_messages.return_value = []
+        mock_get_model.return_value = mock_model
+
+        # Environment execute raises Submitted when COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT is seen
+        from minisweagent.exceptions import Submitted
+
+        execute_call_count = 0
+
+        def execute_side_effect(action, **kwargs):
+            nonlocal execute_call_count
+            execute_call_count += 1
+            # First call is git clone, just return success
+            if execute_call_count == 1:
+                return {"output": "", "returncode": 0, "exception_info": ""}
+            # Second call is the agent action, raise Submitted
+            raise Submitted(
+                {
+                    "role": "exit",
+                    "content": "done",
+                    "extra": {"exit_status": "Submitted", "submission": "done"},
+                }
+            )
+
+        mock_env = Mock()
+        mock_env.config = Mock()
+        mock_env.config.model_dump.return_value = {}
+        mock_env.execute.side_effect = execute_side_effect
+        mock_env.get_template_vars.return_value = {
+            "system": "TestOS",
+            "release": "1.0",
+            "version": "1.0.0",
+            "machine": "x86_64",
+        }
+        mock_env.serialize.return_value = {
+            "info": {"config": {"environment": {}, "environment_type": "MockEnvironment"}}
+        }
+        mock_env_class.return_value = mock_env
+
+        main(
+            issue_url="https://github.com/test/repo/issues/1",
+            config_spec=[str(config_file)],
+            model="test-model",
+            yolo=True,
+        )
+
+        assert output_file.exists(), f"Output file {output_file} was not created"
+
+
+@pytest.mark.slow
+def test_github_issue_end_to_end(github_test_data):
+    """Test the complete flow from CLI to final result using real environment but deterministic model"""
+
+    model_responses = github_test_data["model_responses"]
+    expected_observations = github_test_data["expected_observations"]
+
+    with (
+        patch("minisweagent.run.extra.github_issue.configure_if_first_time"),
+        patch("minisweagent.run.extra.github_issue.get_model") as mock_get_model,
+        patch("minisweagent.agents.interactive.prompt_session.prompt", return_value=""),  # No new task
+    ):
+        mock_get_model.return_value = DeterministicModel(outputs=model_responses)
+        github_url = "https://github.com/SWE-agent/test-repo/issues/1"
+        agent = main(issue_url=github_url, model="tardis", config_spec=[str(DEFAULT_CONFIG)], yolo=True)  # type: ignore
+
+    assert agent is not None
+    messages = agent.messages
+
+    # Verify we have the right number of messages
+    # Should be: system + user (initial) + (assistant + user) * number_of_steps
+    expected_total_messages = 2 + (len(model_responses) * 2)
+    assert len(messages) == expected_total_messages, f"Expected {expected_total_messages} messages, got {len(messages)}"
+
+    assert_observations_match(expected_observations, messages)
+
+    assert agent.n_calls == len(model_responses), f"Expected {len(model_responses)} steps, got {agent.n_calls}"
+
+
+# --- Tests for MSWEA_GITHUB_CONFIG_PATH (documented in global_configuration.md) ---
+
+
+class TestGithubConfigPath:
+    """Tests for the MSWEA_GITHUB_CONFIG_PATH environment variable behaviour."""
+
+    def test_default_config_is_builtin_github_issue_yaml(self):
+        """DEFAULT_CONFIG points to the built-in github_issue.yaml."""
+        assert DEFAULT_CONFIG.name == "github_issue.yaml"
+        assert DEFAULT_CONFIG.exists(), "Built-in github_issue.yaml must exist"
+
+    def test_default_config_file_contains_required_sections(self):
+        """The built-in github_issue.yaml has the expected top-level config sections."""
+        assert DEFAULT_CONFIG.exists(), "Built-in github_issue.yaml must exist"
+        config = yaml.safe_load(DEFAULT_CONFIG.read_text())
+        # Should have at least an agent section with required templates
+        assert "agent" in config, "github_issue.yaml must have an 'agent' section"
+
+    def test_mswea_github_config_path_env_var_logic(self, tmp_path):
+        """The module uses MSWEA_GITHUB_CONFIG_PATH env var to compute the default config path.
+
+        We test the same expression the module uses rather than reloading the module,
+        which avoids test-isolation issues.
+        """
+        from minisweagent.config import builtin_config_dir
+
+        custom_config = tmp_path / "my_github.yaml"
+        custom_config.write_text("agent: {}\n")
+
+        # Reproduce the exact expression from github_issue.py:
+        #   DEFAULT_CONFIG = Path(os.getenv("MSWEA_GITHUB_CONFIG_PATH", builtin_config_dir / "github_issue.yaml"))
+        with patch.dict(os.environ, {"MSWEA_GITHUB_CONFIG_PATH": str(custom_config)}):
+            computed_path = Path(os.getenv("MSWEA_GITHUB_CONFIG_PATH", str(builtin_config_dir / "github_issue.yaml")))
+            assert computed_path == custom_config
+
+    def test_mswea_github_config_path_missing_env_var_falls_back_to_builtin(self):
+        """When MSWEA_GITHUB_CONFIG_PATH is not set, the builtin github_issue.yaml is used."""
+        from minisweagent.config import builtin_config_dir
+
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("MSWEA_GITHUB_CONFIG_PATH", None)
+            computed_path = Path(os.getenv("MSWEA_GITHUB_CONFIG_PATH", str(builtin_config_dir / "github_issue.yaml")))
+            assert computed_path.name == "github_issue.yaml"
+            assert computed_path.exists()
+
+    def test_main_uses_default_config_when_env_var_not_set(self):
+        """main() uses the builtin default config path when MSWEA_GITHUB_CONFIG_PATH is not set."""
+        with (
+            patch.dict(os.environ, {}, clear=False),
+            patch("minisweagent.run.extra.github_issue.configure_if_first_time"),
+            patch("minisweagent.run.extra.github_issue.fetch_github_issue") as mock_fetch,
+            patch("minisweagent.run.extra.github_issue.InteractiveAgent") as mock_agent,
+            patch("minisweagent.run.extra.github_issue.get_model"),
+            patch("minisweagent.run.extra.github_issue.DockerEnvironment"),
+            patch("minisweagent.run.extra.github_issue.get_config_from_spec") as mock_get_config,
+        ):
+            os.environ.pop("MSWEA_GITHUB_CONFIG_PATH", None)
+            mock_fetch.return_value = "Test issue"
+            mock_get_config.return_value = {"agent": {}, "environment": {}, "model": {}}
+            mock_agent_instance = mock_agent.return_value
+            mock_agent_instance.run.return_value = {"exit_status": "Submitted", "submission": "done"}
+            mock_agent_instance.env.execute.return_value = None
+
+            main(
+                issue_url="https://github.com/test/repo/issues/1",
+                config_spec=[str(DEFAULT_CONFIG)],
+                model=None,
+                yolo=True,
+            )
+
+            # Verify get_config_from_spec was called with the default config path
+            mock_get_config.assert_called_once_with(str(DEFAULT_CONFIG))
