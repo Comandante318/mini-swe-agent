@@ -6,13 +6,13 @@ the old `git add + git diff --cached` approach to the new 3-step patch.txt workf
   Step 2: Verify patch.txt
   Step 3: Submit with `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt`
 """
+
 from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 import yaml
 from jinja2 import StrictUndefined, Template
-
 
 # Paths to all changed config files
 REPO_ROOT = Path(__file__).parent.parent.parent
@@ -120,12 +120,8 @@ class TestSubmissionInstructionsPresent:
         """The old 'git add' submission approach must no longer be used."""
         template = get_instance_template(config_path)
         # The new approach uses `git diff > patch.txt`, not `git add ... && git diff --cached`
-        assert "git add <file1>" not in template, (
-            f"{config_path.name}: old 'git add <file1>' command still present"
-        )
-        assert "git diff --cached" not in template, (
-            f"{config_path.name}: old 'git diff --cached' command still present"
-        )
+        assert "git add <file1>" not in template, f"{config_path.name}: old 'git add <file1>' command still present"
+        assert "git diff --cached" not in template, f"{config_path.name}: old 'git diff --cached' command still present"
 
     @pytest.mark.parametrize("config_path", CHANGED_CONFIGS, ids=[p.name for p in CHANGED_CONFIGS])
     def test_in_order_instruction(self, config_path):
@@ -155,9 +151,7 @@ class TestToolcallFormatErrorTemplate:
         """The format_error_template must guide agents to use the bash tool."""
         config = load_config(config_path)
         error_template = config["model"]["format_error_template"]
-        assert "bash" in error_template.lower(), (
-            f"{config_path.name}: format_error_template does not mention 'bash'"
-        )
+        assert "bash" in error_template.lower(), f"{config_path.name}: format_error_template does not mention 'bash'"
 
     @pytest.mark.parametrize("config_path", TOOLCALL_CONFIGS, ids=[p.name for p in TOOLCALL_CONFIGS])
     def test_format_error_template_includes_submit_command(self, config_path):
@@ -167,18 +161,14 @@ class TestToolcallFormatErrorTemplate:
         assert "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT" in error_template, (
             f"{config_path.name}: format_error_template missing submission command"
         )
-        assert "cat patch.txt" in error_template, (
-            f"{config_path.name}: format_error_template missing 'cat patch.txt'"
-        )
+        assert "cat patch.txt" in error_template, f"{config_path.name}: format_error_template missing 'cat patch.txt'"
 
     @pytest.mark.parametrize("config_path", TOOLCALL_CONFIGS, ids=[p.name for p in TOOLCALL_CONFIGS])
     def test_format_error_template_provides_json_argument_format(self, config_path):
         """The format_error_template must show JSON argument format for bash tool."""
         config = load_config(config_path)
         error_template = config["model"]["format_error_template"]
-        assert '"command"' in error_template, (
-            f"{config_path.name}: format_error_template missing JSON 'command' key"
-        )
+        assert '"command"' in error_template, f"{config_path.name}: format_error_template missing JSON 'command' key"
 
     def test_toolcall_format_error_no_longer_counts_actions(self):
         """swebench_toolcall.yaml's format_error_template should not reference 'actions' variable
@@ -284,9 +274,7 @@ class TestSwebenchToolcallVerboseNewFile:
     def test_environment_cwd_is_testbed(self):
         """The environment cwd must be /testbed."""
         config = load_config(EXTRA_CONFIG_DIR / "swebench_toolcall_verbose.yaml")
-        assert config["environment"]["cwd"] == "/testbed", (
-            "swebench_toolcall_verbose.yaml cwd is not '/testbed'"
-        )
+        assert config["environment"]["cwd"] == "/testbed", "swebench_toolcall_verbose.yaml cwd is not '/testbed'"
 
     def test_instance_template_contains_task_variable(self):
         """Instance template must use the {{task}} variable for the PR description."""
@@ -458,9 +446,7 @@ class TestInstanceTemplateRendering:
         template_str = config["agent"]["instance_template"]
         template = Template(template_str, undefined=StrictUndefined)
         result = template.render(task="Fix the bug in module.py")
-        assert "Fix the bug in module.py" in result, (
-            f"{config_path.name}: instance_template did not render {{task}}"
-        )
+        assert "Fix the bug in module.py" in result, f"{config_path.name}: instance_template did not render {{task}}"
 
     @pytest.mark.parametrize("config_path", CHANGED_CONFIGS, ids=[p.name for p in CHANGED_CONFIGS])
     def test_submission_section_appears_after_rendering(self, config_path):
