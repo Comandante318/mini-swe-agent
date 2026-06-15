@@ -235,9 +235,7 @@ def test_submission_section_references_patch_txt():
     for config_path in ALL_MODIFIED_CONFIGS:
         config = _load_config(config_path)
         instance_template = _get_instance_template(config)
-        assert "patch.txt" in instance_template, (
-            f"{config_path.name}: submission section does not reference patch.txt"
-        )
+        assert "patch.txt" in instance_template, f"{config_path.name}: submission section does not reference patch.txt"
 
 
 def test_submission_section_has_three_step_process():
@@ -287,12 +285,8 @@ def test_submission_has_important_and_critical_uppercase_tags():
         assert "</IMPORTANT>" in instance_template, (
             f"{config_path.name}: missing closing </IMPORTANT> tag in submission"
         )
-        assert "<CRITICAL>" in instance_template, (
-            f"{config_path.name}: missing <CRITICAL> tag in submission"
-        )
-        assert "</CRITICAL>" in instance_template, (
-            f"{config_path.name}: missing closing </CRITICAL> tag in submission"
-        )
+        assert "<CRITICAL>" in instance_template, f"{config_path.name}: missing <CRITICAL> tag in submission"
+        assert "</CRITICAL>" in instance_template, f"{config_path.name}: missing closing </CRITICAL> tag in submission"
 
 
 def test_submission_important_lists_excluded_file_types():
@@ -365,9 +359,7 @@ def test_toolcall_verbose_system_template_mentions_one_tool_call():
     assert "ONE command" in system_template or "one" in system_template.lower(), (
         "system_template must instruct agent to use exactly one command/tool call"
     )
-    assert "bash" in system_template.lower(), (
-        "system_template must reference the bash tool"
-    )
+    assert "bash" in system_template.lower(), "system_template must reference the bash tool"
 
 
 def test_toolcall_verbose_format_error_template_references_bash_tool():
@@ -444,9 +436,7 @@ def test_toolcall_configs_have_exception_info_in_observation_template():
         output_ok = MockOutput(returncode=0, output="ok", exception_info="")
         result_ok = template.render(output=output_ok)
         parsed_ok = json.loads(result_ok)
-        assert "exception_info" not in parsed_ok, (
-            f"{config_path.name}: exception_info should be absent when empty"
-        )
+        assert "exception_info" not in parsed_ok, f"{config_path.name}: exception_info should be absent when empty"
 
 
 def test_all_modified_configs_step_and_cost_limits():
@@ -462,9 +452,7 @@ def test_all_modified_configs_environment_cwd():
     """All modified configs must set the working directory to /testbed."""
     for config_path in ALL_MODIFIED_CONFIGS:
         config = _load_config(config_path)
-        assert config["environment"]["cwd"] == "/testbed", (
-            f"{config_path.name}: environment.cwd is not '/testbed'"
-        )
+        assert config["environment"]["cwd"] == "/testbed", f"{config_path.name}: environment.cwd is not '/testbed'"
 
 
 def test_submission_verify_step_mentions_patch_txt_inspection():
@@ -476,6 +464,4 @@ def test_submission_verify_step_mentions_patch_txt_inspection():
         assert "patch.txt" in instance_template
         # Verify the step is present
         verify_step_present = "Step 2" in instance_template and "Verify" in instance_template
-        assert verify_step_present, (
-            f"{config_path.name}: Step 2 verification step is missing or incomplete"
-        )
+        assert verify_step_present, f"{config_path.name}: Step 2 verification step is missing or incomplete"
