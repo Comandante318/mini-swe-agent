@@ -212,9 +212,7 @@ def test_submission_uses_patch_txt_workflow():
     """All changed configs must describe the new 3-step patch.txt submission workflow."""
     for config_path in SWEBENCH_CONFIGS_WITH_NEW_SUBMISSION:
         template_str = _load_instance_template(config_path)
-        assert "patch.txt" in template_str, (
-            f"{config_path} does not reference patch.txt in submission instructions"
-        )
+        assert "patch.txt" in template_str, f"{config_path} does not reference patch.txt in submission instructions"
 
 
 def test_submission_exact_command_present():
@@ -234,9 +232,7 @@ def test_submission_no_longer_uses_git_add_cached():
         assert "git diff --cached" not in template_str, (
             f"{config_path} still contains old 'git diff --cached' submission pattern"
         )
-        assert "git add" not in template_str, (
-            f"{config_path} still contains old 'git add' submission pattern"
-        )
+        assert "git add" not in template_str, f"{config_path} still contains old 'git add' submission pattern"
 
 
 def test_submission_three_step_process_present():
@@ -252,9 +248,7 @@ def test_submission_critical_tag_present():
     """All changed configs must include the CRITICAL constraints block."""
     for config_path in SWEBENCH_CONFIGS_WITH_NEW_SUBMISSION:
         template_str = _load_instance_template(config_path)
-        assert "CRITICAL" in template_str, (
-            f"{config_path} is missing the CRITICAL constraints tag"
-        )
+        assert "CRITICAL" in template_str, f"{config_path} is missing the CRITICAL constraints tag"
 
 
 def test_submission_critical_separate_commands_requirement():
@@ -284,15 +278,12 @@ def test_submission_verify_step_mentions_patch_txt():
     """Step 2 (verify) must instruct inspecting patch.txt."""
     for config_path in SWEBENCH_CONFIGS_WITH_NEW_SUBMISSION:
         template_str = _load_instance_template(config_path)
-        assert "Verify" in template_str or "verify" in template_str, (
-            f"{config_path} does not have a verification step"
-        )
-        assert "patch.txt" in template_str, (
-            f"{config_path} does not mention patch.txt in the verify step"
-        )
+        assert "Verify" in template_str or "verify" in template_str, f"{config_path} does not have a verification step"
+        assert "patch.txt" in template_str, f"{config_path} does not mention patch.txt in the verify step"
 
 
 # ---- Tests for swebench_toolcall.yaml format_error_template changes ----
+
 
 def test_toolcall_format_error_references_bash_tool():
     """swebench_toolcall.yaml format_error_template must instruct using the 'bash' tool."""
@@ -300,9 +291,7 @@ def test_toolcall_format_error_references_bash_tool():
     with open(config_path) as f:
         config = yaml.safe_load(f)
     fmt_err = config["model"]["format_error_template"]
-    assert "bash" in fmt_err, (
-        "swebench_toolcall.yaml format_error_template should instruct using the 'bash' tool"
-    )
+    assert "bash" in fmt_err, "swebench_toolcall.yaml format_error_template should instruct using the 'bash' tool"
     assert "Tool call error" in fmt_err, (
         "swebench_toolcall.yaml format_error_template should start with 'Tool call error'"
     )
@@ -336,6 +325,7 @@ def test_toolcall_format_error_no_longer_references_mswea_bash_command_codeblock
 
 # ---- Tests for the new swebench_toolcall_verbose.yaml file ----
 
+
 def test_toolcall_verbose_file_exists():
     """swebench_toolcall_verbose.yaml must exist as a new config file."""
     config_path = Path("src/minisweagent/config/extra/swebench_toolcall_verbose.yaml")
@@ -359,12 +349,8 @@ def test_toolcall_verbose_system_template_instructs_tool_call():
     with open(config_path) as f:
         config = yaml.safe_load(f)
     system_template = config["agent"]["system_template"]
-    assert "bash" in system_template.lower(), (
-        "swebench_toolcall_verbose.yaml system_template must reference bash tool"
-    )
-    assert "tool" in system_template.lower(), (
-        "swebench_toolcall_verbose.yaml system_template must reference tool calls"
-    )
+    assert "bash" in system_template.lower(), "swebench_toolcall_verbose.yaml system_template must reference bash tool"
+    assert "tool" in system_template.lower(), "swebench_toolcall_verbose.yaml system_template must reference tool calls"
 
 
 def test_toolcall_verbose_format_error_references_bash_tool():
