@@ -252,9 +252,7 @@ class TestAllChangedConfigsParseAndHaveRequiredSections:
     def test_all_extra_configs_have_observation_template(self):
         for config_path in ALL_CHANGED_CONFIG_FILES:
             config = _load_config(config_path)
-            assert config["model"].get("observation_template"), (
-                f"{config_path.name} missing model.observation_template"
-            )
+            assert config["model"].get("observation_template"), f"{config_path.name} missing model.observation_template"
 
     def test_all_extra_configs_have_step_limit(self):
         for config_path in ALL_CHANGED_CONFIG_FILES:
@@ -287,9 +285,7 @@ class TestSubmissionSectionChanges:
             assert "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT" in instance_template, (
                 f"{config_path.name} missing COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"
             )
-            assert "cat patch.txt" in instance_template, (
-                f"{config_path.name} missing 'cat patch.txt'"
-            )
+            assert "cat patch.txt" in instance_template, f"{config_path.name} missing 'cat patch.txt'"
 
     def test_submission_section_has_three_step_structure(self):
         """All configs must describe a 3-step submission process."""
@@ -305,27 +301,21 @@ class TestSubmissionSectionChanges:
         for config_path in ALL_CHANGED_CONFIG_FILES:
             config = _load_config(config_path)
             instance_template = _get_instance_template(config)
-            assert "CRITICAL" in instance_template, (
-                f"{config_path.name} missing CRITICAL block in instance_template"
-            )
+            assert "CRITICAL" in instance_template, f"{config_path.name} missing CRITICAL block in instance_template"
 
     def test_submission_section_has_important_block(self):
         """All configs must contain an IMPORTANT block describing excluded file types."""
         for config_path in ALL_CHANGED_CONFIG_FILES:
             config = _load_config(config_path)
             instance_template = _get_instance_template(config)
-            assert "IMPORTANT" in instance_template, (
-                f"{config_path.name} missing IMPORTANT block in instance_template"
-            )
+            assert "IMPORTANT" in instance_template, f"{config_path.name} missing IMPORTANT block in instance_template"
 
     def test_submission_section_mentions_patch_txt_verification(self):
         """All configs must instruct to verify patch.txt before submitting."""
         for config_path in ALL_CHANGED_CONFIG_FILES:
             config = _load_config(config_path)
             instance_template = _get_instance_template(config)
-            assert "patch.txt" in instance_template, (
-                f"{config_path.name} missing patch.txt reference"
-            )
+            assert "patch.txt" in instance_template, f"{config_path.name} missing patch.txt reference"
             assert "Verify" in instance_template or "verify" in instance_template, (
                 f"{config_path.name} missing verification step"
             )
@@ -356,9 +346,7 @@ class TestSubmissionSectionChanges:
             config = _load_config(config_path)
             instance_template = _get_instance_template(config)
             # Old text said: "Do NOT use `git add -A` or `git add .`"
-            assert "git add -A" not in instance_template, (
-                f"{config_path.name} still contains old 'git add -A' warning"
-            )
+            assert "git add -A" not in instance_template, f"{config_path.name} still contains old 'git add -A' warning"
 
     def test_submission_excluded_files_list_updated(self):
         """The updated IMPORTANT block should describe excluded file types without bullet dashes."""
@@ -387,9 +375,7 @@ class TestSwebenchToolcallFormatErrorTemplate:
 
     def test_format_error_references_bash_tool(self):
         """New format_error_template should reference the 'bash' tool."""
-        assert "bash" in self.format_error, (
-            "swebench_toolcall.yaml format_error_template should reference 'bash' tool"
-        )
+        assert "bash" in self.format_error, "swebench_toolcall.yaml format_error_template should reference 'bash' tool"
 
     def test_format_error_shows_json_argument_format(self):
         """New format_error_template should show JSON argument format for tool call."""
@@ -502,9 +488,7 @@ class TestSwebenchToolcallVerboseNewFile:
     def test_format_error_template_references_bash_tool(self):
         """format_error_template must reference the bash tool."""
         format_error = self.config["model"]["format_error_template"]
-        assert "bash" in format_error, (
-            "swebench_toolcall_verbose.yaml format_error_template should reference bash tool"
-        )
+        assert "bash" in format_error, "swebench_toolcall_verbose.yaml format_error_template should reference bash tool"
 
     def test_format_error_template_requires_exactly_one_call(self):
         """format_error_template must state exactly one tool call is required."""
@@ -520,9 +504,7 @@ class TestSwebenchToolcallVerboseNewFile:
         assert "cat patch.txt" in format_error
 
     def test_model_name_is_set(self):
-        assert self.config["model"].get("model_name"), (
-            "swebench_toolcall_verbose.yaml missing model.model_name"
-        )
+        assert self.config["model"].get("model_name"), "swebench_toolcall_verbose.yaml missing model.model_name"
 
     def test_instance_template_critical_warning_mentions_no_working_after_submit(self):
         """CRITICAL block must state that work cannot continue after submitting."""
