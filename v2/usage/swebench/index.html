@@ -2974,6 +2974,9 @@ For example, you could use</p>
 <span class="w">    </span><span class="nt">LESS</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-R</span>
 <span class="w">    </span><span class="nt">PIP_PROGRESS_BAR</span><span class="p">:</span><span class="w"> </span><span class="s">"off"</span>
 <span class="w">    </span><span class="nt">TQDM_DISABLE</span><span class="p">:</span><span class="w"> </span><span class="s">"1"</span>
+<span class="w">    </span><span class="c1"># bash -c is non-login so it won't source ~/.bashrc; point BASH_ENV at it so the</span>
+<span class="w">    </span><span class="c1"># image's `conda activate testbed` runs (else commands use the base env, no testbed).</span>
+<span class="w">    </span><span class="nt">BASH_ENV</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/root/.bashrc</span>
 <span class="w">  </span><span class="nt">environment_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docker</span>
 
 <span class="nt">model</span><span class="p">:</span>
@@ -3006,6 +3009,9 @@ For example, you could use</p>
 <span class="w">    </span><span class="no">&lt;/output_tail&gt;</span>
 <span class="w">    </span><span class="no">{%- endif -%}</span>
 <span class="w">  </span><span class="nt">format_error_template</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">    </span><span class="no">{% if finish_reason is defined and finish_reason in ["length", "tool_calls"] -%}</span>
+<span class="w">    </span><span class="no">Your previous response reached the output token limit (finish_reason={{ finish_reason }}) before you produced a tool call, so it was cut off. Respond more concisely and finish with exactly one bash tool call. If you need to think more, do so briefly.</span>
+<span class="w">    </span><span class="no">{%- else -%}</span>
 <span class="w">    </span><span class="no">Tool call error:</span>
 
 <span class="w">    </span><span class="no">&lt;error&gt;</span>
@@ -3022,10 +3028,10 @@ For example, you could use</p>
 
 <span class="w">    </span><span class="no">If you have completed your assignment, please consult the first message about how to</span>
 <span class="w">    </span><span class="no">submit your solution (you will not be able to continue working on this task after that).</span>
+<span class="w">    </span><span class="no">{%- endif %}</span>
 <span class="w">  </span><span class="nt">model_name</span><span class="p">:</span><span class="w"> </span><span class="s">"anthropic/claude-sonnet-4-5-20250929"</span>
 <span class="w">  </span><span class="nt">model_kwargs</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">drop_params</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">temperature</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
 <span class="w">    </span><span class="nt">parallel_tool_calls</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
 </details>
