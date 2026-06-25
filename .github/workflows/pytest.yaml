@@ -38,7 +38,7 @@ jobs:
         shell: bash -l {0}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
@@ -74,7 +74,7 @@ jobs:
       - name: Run pytest
         run: pytest -v --cov --cov-branch --cov-report=xml -n auto
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: SWE-agent/mini-swe-agent
