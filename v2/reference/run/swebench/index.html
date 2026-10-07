@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../../../assets/mini_square.svg">
-      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.7">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -3047,7 +3047,7 @@
 <span class="normal">92</span>
 <span class="normal">93</span>
 <span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_sb_environment</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">instance</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Environment</span><span class="p">:</span>
-    <span class="n">env_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"environment"</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="n">env_config</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"environment"</span><span class="p">,</span> <span class="p">{})}</span>
     <span class="n">env_config</span><span class="p">[</span><span class="s2">"environment_class"</span><span class="p">]</span> <span class="o">=</span> <span class="n">env_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"environment_class"</span><span class="p">,</span> <span class="s2">"docker"</span><span class="p">)</span>
     <span class="n">image_name</span> <span class="o">=</span> <span class="n">get_swebench_docker_image_name</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">env_config</span><span class="p">[</span><span class="s2">"environment_class"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"docker"</span><span class="p">,</span> <span class="s2">"swerex_modal"</span><span class="p">]:</span>
@@ -3058,7 +3058,7 @@
     <span class="n">env</span> <span class="o">=</span> <span class="n">get_environment</span><span class="p">(</span><span class="n">env_config</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">startup_command</span> <span class="o">:=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"run"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"env_startup_command"</span><span class="p">):</span>
         <span class="n">startup_command</span> <span class="o">=</span> <span class="n">Template</span><span class="p">(</span><span class="n">startup_command</span><span class="p">,</span> <span class="n">undefined</span><span class="o">=</span><span class="n">StrictUndefined</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="o">**</span><span class="n">instance</span><span class="p">)</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">startup_command</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">execute</span><span class="p">({</span><span class="s2">"command"</span><span class="p">:</span> <span class="n">startup_command</span><span class="p">})</span>
         <span class="k">if</span> <span class="n">out</span><span class="p">[</span><span class="s2">"returncode"</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Error executing startup command: </span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">env</span>
@@ -3768,7 +3768,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.indexes", "navigation.top", "content.action.edit", "navigation.footer", "content.code.copy", "content.footnote.tooltips", "header.autohide", "announce.dismiss", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../assets/js/sh-annotation.js"></script>
       

@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../../assets/mini_square.svg">
-      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.7">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2702,6 +2702,8 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">n_consecutive_format_errors</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># reset on any clean step</span>
             <span class="k">except</span> <span class="n">FormatError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="c1"># The call was billed before parsing failed, so query() never got to charge it.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cost</span> <span class="o">+=</span> <span class="n">e</span><span class="o">.</span><span class="n">messages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"extra"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cost"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">n_consecutive_format_errors</span> <span class="o">+=</span> <span class="mi">1</span>
                 <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_consecutive_format_errors</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_consecutive_format_errors</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">add_messages</span><span class="p">(</span>
@@ -2996,7 +2998,7 @@ This uses exceptions that inherit from <code>InterruptAgentFlow</code>. All thes
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.indexes", "navigation.top", "content.action.edit", "navigation.footer", "content.code.copy", "content.footnote.tooltips", "header.autohide", "announce.dismiss", "content.code.annotate", "navigation.tabs", "navigation.tabs.sticky"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/js/sh-annotation.js"></script>
       
