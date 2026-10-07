@@ -77,7 +77,7 @@ def get_swebench_docker_image_name(instance: dict) -> str:
 
 
 def get_sb_environment(config: dict, instance: dict) -> Environment:
-    env_config = config.setdefault("environment", {})
+    env_config = {**config.get("environment", {})}
     env_config["environment_class"] = env_config.get("environment_class", "docker")
     image_name = get_swebench_docker_image_name(instance)
     if env_config["environment_class"] in ["docker", "swerex_modal"]:
@@ -88,7 +88,7 @@ def get_sb_environment(config: dict, instance: dict) -> Environment:
     env = get_environment(env_config)
     if startup_command := config.get("run", {}).get("env_startup_command"):
         startup_command = Template(startup_command, undefined=StrictUndefined).render(**instance)
-        out = env.execute(startup_command)
+        out = env.execute({"command": startup_command})
         if out["returncode"] != 0:
             raise RuntimeError(f"Error executing startup command: {out}")
     return env
